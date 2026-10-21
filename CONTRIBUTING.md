@@ -130,7 +130,7 @@ model as unavailable rather than inventing a prediction.
 Two commands, both from the repository root (except the frontend one).
 
 ```powershell
-# Backend + AI  — 289 tests, uses in-memory SQLite, needs no database
+# Backend + AI  — 295 tests, uses in-memory SQLite, needs no database
 .\.venv\Scripts\python.exe -m pytest -q
 
 # Frontend — 43 tests

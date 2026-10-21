@@ -43,17 +43,11 @@ carry. The names and columns below are taken from the SQL files themselves in
 | `v_model_run_metrics` | `07_model_run_metrics.sql` | model run | `has_metrics` (coverage, **not** quality); `has_failed`; `duration_seconds` is **NULL** while a run has not finished |
 | `v_resident_activity_summary` | `08_resident_activity_summary.sql` | resident × day | `simulated_event_count`, `imported_dataset_event_count`, `non_simulated_event_count`, `all_events_simulated`; `verified_fall_event_count` vs `fall_event_count` |
 
-> **A discrepancy in the existing docs, stated rather than hidden.**
-> [`erd.md`](erd.md#reporting-layer-views-not-tables) lists the reporting layer
-> under different names — `analytics_checkin_daily`, `analytics_alerts_daily`,
-> `analytics_caregiver_acknowledgement`, `analytics_care_plan_adherence`,
-> `analytics_activity_daily`, `analytics_model_runs`,
-> `analytics_resident_rollup`, `analytics_kpi_definitions`. **Those view names
-> do not exist.** The views that actually exist are the `v_*` names above, and
-> their columns differ from the ERD's list as well. This guide uses the real
-> names, because the real names are the ones a Power BI import will show.
-> `erd.md` is an existing file and has not been edited; reconciling it is
-> open work (see [roadmap.md](roadmap.md#9-current-state)).
+> **Reconciled with the ERD.** `erd.md` used to describe the reporting layer
+> under names that do not exist (`analytics_checkin_daily`,
+> `analytics_alerts_daily`, and so on). That table has been corrected to list
+> the eight `v_*` views above with the columns they actually carry, so the two
+> documents now agree.
 
 The manifest is what makes the export auditable: a report built from a CSV set
 can say *when* it was produced, *from what*, and *over which window* — which is

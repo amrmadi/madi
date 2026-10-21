@@ -42,7 +42,7 @@ not a delivery. That distinction is the whole point of the file.
 |---|---|---|
 | **1 — Design and contracts** | Architecture, ERD, API contract, alert/KPI reference, dataset documentation | Documents exist and the code was checked against them (e.g. the analytics SQL validated against the models by `tools/validate_analytics_sql.py`) |
 | **2 — Database schema and migrations** | 19 application tables + `alembic_version`, one Alembic migration, dataset/user separation | `alembic upgrade head` / `alembic check` → no drift; 20 tables counted in PostgreSQL 16 |
-| **3 — Backend API and access control** | Auth, profiles, assignments, care plans, medication schedules, reminders, check-ins, activity events, alerts, alert-rule engine, KPIs, analytics, AI capability routes, demo seeder | **289 automated tests pass** (in-memory SQLite); `403` for unassigned caregivers confirmed over HTTP |
+| **3 — Backend API and access control** | Auth, profiles, assignments, care plans, medication schedules, reminders, check-ins, activity events, alerts, alert-rule engine, KPIs, analytics, AI capability routes, demo seeder | **295 automated tests pass** (in-memory SQLite); `403` for unassigned caregivers confirmed over HTTP |
 | **4 — Frontend application** | React + TypeScript + Vite app: login, dashboard, residents, resident detail (5 tabs), alerts | `tsc -b` exits 0, `npm run build` exits 0, **43 tests pass**; run against the live backend — all pages `200` with correct CORS |
 | **5 — Alert rules, KPIs, analytics and the AI layer** | Rule engine with live thresholds, 8 KPIs with explicit missing-data handling, 8 SQL views, typed AI interfaces, and **a trained fall-detection model** | 8 views created and queried on real PostgreSQL; AI interface tests; the fall model measured at **F1 0.80 on 6 unseen adult subjects** (SisFall) |
 | **6 — Deployment and end-to-end verification** | Backend + frontend Dockerfiles, Compose stack with health-gated start-up, offline validators, `.env.example`, `.gitignore` | Stack **built and run**: all three services healthy, migrations applied on real PostgreSQL, seeder verified, two real defects found by running it — and fixed |
@@ -71,10 +71,10 @@ at); the access-control rules in the contract are the rules the backend
 enforces; the "missing data is not an emergency" rule from the contract is
 implemented in `backend/app/services/alert_rules.py` and covered by tests.
 
-> The top-level README still quotes "148 column references" for this check.
-> That figure was correct when the SQL was smaller; the validator now reports
-> **211**. The README has not been edited here, so treat the validator's own
-> output as the current number.
+> The check reports **211 column references** across 24 table references. An
+> earlier draft of the top-level README quoted "148"; that figure was correct
+> when the SQL was smaller. The README has since been corrected to match the
+> validator's output.
 
 ---
 
@@ -119,7 +119,7 @@ single Alembic migration `596dcc02ab32_initial_schema.py`:
 
 **Verified how.**
 
-- **289 automated tests pass** (`python -m pytest -q`, in-memory SQLite, no database needed).
+- **295 automated tests pass** (`python -m pytest -q`, in-memory SQLite, no database needed).
 - **Access control is enforced server-side**: an unassigned caregiver gets `403`
   on profiles, care plans, check-ins, alerts and alert acknowledgement; the
   frontend hiding a button is not the protection.
@@ -246,7 +246,7 @@ project's rule *"nothing is done until it has been run"*.
 | Area | State |
 |---|---|
 | Database schema | ✅ delivered and verified on real PostgreSQL |
-| Backend API | ✅ delivered — 289 tests pass |
+| Backend API | ✅ delivered — 295 tests pass |
 | Access control | ✅ delivered — enforced server-side |
 | Alert rules and KPIs | ✅ delivered — measured, with missing-data handling stated |
 | Frontend | ✅ delivered — builds, 43 tests, exercised against the live backend |
@@ -257,40 +257,35 @@ project's rule *"nothing is done until it has been run"*.
 | **Behavioural analysis** | ⬜ no model — `503 MODEL_NOT_LOADED` |
 | **Power BI report** | ⬜ no `.pbix` — the export script and the SQL views exist, but no export output is present and no report has been built |
 | **Real-time alerts** | ⬜ not implemented |
-| **CI pipeline** | ⬜ not started — a workflow file exists, but it has never been run and it calls three validators that are not in the tree |
+| **CI pipeline** | ✅ the workflow exists and is **green on GitHub** — see [T4](../CONTRIBUTING.md#t4--ci-pipeline-) |
 | **Production deployment** | ⬜ local Docker Compose only; no host, no monitoring, no backup policy |
 
 ### Known gaps in the current working tree
 
-These paths are **referenced by the top-level README, `CONTRIBUTING.md` or the
-CI workflow, but are still not present in the working tree**. They are listed
-so that nobody follows a link into nothing:
+There are currently **no missing paths**. Everything the top-level README,
+`CONTRIBUTING.md` or the CI workflow refers to exists in the tree.
 
-| Missing path | Referenced by |
-|---|---|
-| `tools/validate_nginx.py`, `tools/verify_no_model_path.py`, `tools/validate-compose-real.js` | README (Verification tools), `.github/workflows/ci.yml` (the workflow calls all three, so it would fail as written) |
-| `data/` (raw, processed) | README (repository structure) |
-| `analytics/exports/` (the generated CSVs and `_manifest.json`) | README (demo walkthrough, "CSV exports exist"), `docs/powerbi-guide.md` — the directory is **not present** in the working tree |
+Paths that were referenced but **were not present** — and are now — are no
+longer gaps: `analytics/export_analytics.py`, `analytics/sql/*.sql`,
+`analytics/exports/` (the directory, with a `.gitkeep`; the generated CSVs
+themselves are git-ignored and only appear once you run the export),
+`tools/validate_analytics_sql.py`, `tools/validate_nginx.py`,
+`tools/verify_no_model_path.py`, `tools/validate-compose-real.js`, `data/`
+(raw, processed, sample), `ai/tests/`, `ai/fall_detection/train.py`,
+`ai/fall_detection/README.md`, `ai/activity_recognition/`, and
+`ai/behavioral_analysis/`.
 
-Paths that were referenced but **are now present**, and are therefore no longer
-gaps: `analytics/export_analytics.py`, `analytics/sql/*.sql`,
-`tools/validate_analytics_sql.py`, `ai/tests/`,
-`ai/fall_detection/train.py`, `ai/fall_detection/README.md`,
-`ai/activity_recognition/`, and `ai/behavioral_analysis/`.
-
-> **One naming discrepancy is still open.** `docs/erd.md` lists the reporting
-> layer under the names `analytics_checkin_daily`, `analytics_alerts_daily`,
-> `analytics_caregiver_acknowledgement`, `analytics_care_plan_adherence`,
-> `analytics_activity_daily`, `analytics_model_runs`,
-> `analytics_resident_rollup` and `analytics_kpi_definitions`. **None of those
-> views exists.** The eight views that do exist are named `v_*` —
+> **The reporting-layer naming discrepancy is closed.** `docs/erd.md` used to
+> list the reporting layer under names that do not exist
+> (`analytics_checkin_daily`, `analytics_alerts_daily`, and so on). That table
+> now lists the eight `v_*` views that exist —
 > `v_alert_lifecycle_daily`, `v_alert_acknowledgement_performance`,
 > `v_alert_priority_backlog`, `v_checkin_completion_daily`,
 > `v_medication_adherence_daily`, `v_care_plan_adherence`,
-> `v_model_run_metrics` and `v_resident_activity_summary` — and their columns
-> differ from the ERD's list too. [`docs/powerbi-guide.md`](powerbi-guide.md)
-> uses the real names; the ERD has not been edited. Reconciling the two is
-> open work.
+> `v_model_run_metrics` and `v_resident_activity_summary` — with the honesty
+> columns each one actually carries, every one of them checked against the
+> corresponding SQL file. [`docs/powerbi-guide.md`](powerbi-guide.md) uses the
+> same names, so the two documents now agree.
 
 ---
 
@@ -356,7 +351,8 @@ names and definitions of done from
 - It does not claim a Power BI report exists. No `.pbix` file exists in this
   repository, and none may be claimed to — see
   [powerbi-guide.md](powerbi-guide.md).
-- It does not claim the documentation is fully consistent. `docs/erd.md` still
-  describes a reporting layer under view names that do not exist; the real ones
-  are the `v_*` views in `analytics/sql/`. The discrepancy is documented rather
-  than papered over, and it is still open.
+- It does not claim the documentation is fully consistent. The reporting-layer
+  table in `docs/erd.md` used to list view names that do not exist; it has been
+  corrected to the `v_*` views in `analytics/sql/`, and the honesty columns it
+  lists were each verified against the corresponding SQL file. Other
+  inconsistencies may still exist; the offline validators do not check prose.

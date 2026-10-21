@@ -137,14 +137,14 @@ so Power BI can read aggregate shapes without SQL knowledge.
 
 | View | Grain | Honesty columns it carries |
 |---|---|---|
-| `analytics_checkin_daily` | resident × day | `excluded_pending_count`, `missing_performed_at_count` |
-| `analytics_alerts_daily` | resident × day | `unacknowledged_count`, `deduplicated_alert_count` |
-| `analytics_caregiver_acknowledgement` | caregiver × day | ack latency only for acknowledged alerts |
-| `analytics_care_plan_adherence` | care plan | `excluded_note_count`, `excluded_reminder_count` |
-| `analytics_activity_daily` | resident × day × activity | `simulated_event_count`, `all_events_simulated` |
-| `analytics_model_runs` | model run | `has_metrics`, `has_error` (no invented metrics) |
-| `analytics_resident_rollup` | resident | `verified_fall_events` vs `total_fall_events` |
-| `analytics_kpi_definitions` | KPI | the numerator/denominator text itself |
+| `v_alert_lifecycle_daily` | resident × day | `open_alert_count` (raised but not yet finished), `new_alert_count`, `distinct_caregiver_count` |
+| `v_alert_acknowledgement_performance` | alert | `is_acknowledged`, `seconds_to_acknowledge`, `seconds_to_resolve` (null when never acknowledged) |
+| `v_alert_priority_backlog` | resident × severity × type | `open_alert_count`, `oldest_open_alert_created_at`, `earliest_acknowledged_at` |
+| `v_checkin_completion_daily` | resident × day | `resolved_checkins`, `taken_checkins`, `excluded_pending` |
+| `v_medication_adherence_daily` | resident × medication × day | `resolved_doses`, `taken_doses` |
+| `v_care_plan_adherence` | care plan item | `has_positive_outcome` (a plan item with no log is `false`, not "missing") |
+| `v_model_run_metrics` | model run | `has_metrics`, `error_message` (no invented metrics) |
+| `v_resident_activity_summary` | resident × day | `simulated_event_count`, `imported_dataset_event_count`, `non_simulated_event_count`, `all_events_simulated`, `verified_fall_event_count` vs `fall_event_count` |
 
 5. **`alerts.severity` is operational triage priority, not validated medical risk.** A CHECK
    constraint limits it to `info`/`low`/`medium`/`high`/`critical`, so an unknown level cannot be
