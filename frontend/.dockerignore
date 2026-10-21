@@ -1,0 +1,46 @@
+# ============================================================================
+# ElderLife AI — .dockerignore (frontend build context)
+#
+# The frontend builds with ./frontend as its context. The important exclusion is
+# node_modules: the Dockerfile runs `npm ci` inside the image, and copying the
+# host's node_modules in would overwrite that with Windows-built packages.
+# ============================================================================
+
+# ---- Dependencies (reinstalled inside the image with `npm ci`) -------------
+node_modules/
+
+# ---- Build output (produced inside the image by `npm run build`) -----------
+dist/
+.vite/
+
+# ---- Local environment -----------------------------------------------------
+# A developer's local API URL must not leak into a team image; the URL is passed
+# explicitly as a build argument instead (see the Dockerfile).
+.env
+.env.*
+!.env.example
+
+# ---- Test/coverage output --------------------------------------------------
+coverage/
+
+# ---- Git -------------------------------------------------------------------
+.git
+.gitignore
+
+# ---- Editor / OS noise -----------------------------------------------------
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# ---- Docker files (not needed inside the image) ----------------------------
+Dockerfile
+.dockerignore
+
+# ---- Logs ------------------------------------------------------------------
+*.log
+npm-debug.log*
+
+# ---- Documentation ---------------------------------------------------------
+*.md

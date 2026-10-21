@@ -1,0 +1,142 @@
+/*
+ * Global styles and the Tailwind v4 theme.
+ *
+ * Tailwind v4 is configured in CSS, not in a tailwind.config.js file. The
+ * `@theme` block below defines the design tokens (colours, sizes) that the rest
+ * of the app uses through utility classes like `bg-brand-600`.
+ *
+ * Accessibility choices made here, and why:
+ *   * Base font size is 18px, not 16px. Caregivers are often older adults, and
+ *     small default text is the most common complaint about care software.
+ *   * The default focus ring is thick and high-contrast, because this app is
+ *     used by keyboard and switch-device users.
+ *   * `prefers-reduced-motion` is respected, so animations never cause
+ *     discomfort.
+ *   * Buttons default to a 48px minimum height — a comfortable touch target.
+ */
+
+@import 'tailwindcss';
+
+@theme {
+  /* A calm, high-contrast blue-green palette. Blues read as trustworthy and
+     keep contrast strong against white, which matters more than decoration. */
+  --color-brand-50: #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-200: #bfdbfe;
+  --color-brand-300: #93c5fd;
+  --color-brand-400: #60a5fa;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #1d4ed8;
+  --color-brand-700: #1e40af;
+  --color-brand-800: #1e3a8a;
+  --color-brand-900: #172554;
+
+  /* A larger base size than Tailwind's default 16px, for legibility. */
+  --text-base: 1.125rem;
+  --text-base--line-height: 1.7;
+
+  /* Comfortable touch targets. */
+  --spacing-touch: 3rem;
+}
+
+/* --------------------------------------------------------------------------
+   Base layer
+   -------------------------------------------------------------------------- */
+
+@layer base {
+  html {
+    /* Anchor links and focus scrolling should not be jarring. */
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+    font-size: 1.125rem;
+    line-height: 1.7;
+  }
+
+  /* A clearly visible focus ring on every interactive element. Removing this
+     would make the app unusable by keyboard. */
+  :focus-visible {
+    outline: 3px solid var(--color-brand-600);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  h1 {
+    @apply text-3xl font-bold tracking-tight;
+  }
+  h2 {
+    @apply text-2xl font-semibold tracking-tight;
+  }
+  h3 {
+    @apply text-xl font-semibold;
+  }
+
+  /* Respect the user's motion preference. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Component layer — small, repeated building blocks
+   -------------------------------------------------------------------------- */
+
+/* `btn` is declared with `@utility` rather than as a plain `.btn` class in the
+   component layer. Tailwind v4 only lets `@apply` reference *utilities*; a
+   plain component class cannot be applied from another rule (`@apply btn`
+   fails with "Cannot apply unknown utility class"). Defining it as a utility
+   makes it available both as a class and to `@apply`, which is what the
+   variants below rely on. */
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3
+         text-base font-semibold transition-colors min-h-touch
+         disabled:cursor-not-allowed disabled:opacity-60;
+}
+
+@layer components {
+  /* The main call-to-action button. Deliberately large and unmissable. */
+  .btn-primary {
+    @apply btn bg-brand-600 text-white hover:bg-brand-700;
+  }
+
+  .btn-secondary {
+    @apply btn border-2 border-slate-300 bg-white text-slate-800 hover:bg-slate-100;
+  }
+
+  .btn-danger {
+    @apply btn bg-red-600 text-white hover:bg-red-700;
+  }
+
+  /* Form controls. Full width and large, so they are easy to tap and read. */
+  .field-label {
+    @apply block text-base font-semibold text-slate-800 mb-1;
+  }
+
+  .field-input {
+    @apply block w-full rounded-lg border-2 border-slate-300 bg-white px-4 py-3
+           text-base text-slate-900 placeholder:text-slate-400
+           focus:border-brand-600 focus:outline-none min-h-touch;
+  }
+
+  .field-error {
+    @apply mt-1 text-base font-medium text-red-700;
+  }
+
+  .field-hint {
+    @apply mt-1 text-base text-slate-600;
+  }
+
+  /* A card used for every panel of content. */
+  .card {
+    @apply rounded-xl border border-slate-200 bg-white p-6 shadow-sm;
+  }
+}

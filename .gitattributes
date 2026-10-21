@@ -1,0 +1,74 @@
+# ============================================================
+# ElderLife AI — .gitattributes
+#
+# Line endings: every text file is stored in the repository with
+# LF endings and checked out with LF endings, on every platform.
+#
+# Why it matters here: the Docker images, the Python tooling and
+# the Node tooling all assume LF. Without this file, a Windows
+# checkout with `core.autocrlf=true` rewrites every file's line
+# endings, which shows up as a whole-repository diff and can
+# break shell scripts inside the image.
+# ============================================================
+
+# --- Default: detect text automatically, normalise to LF ---
+* text=auto eol=lf
+
+# --- Windows batch files must keep CRLF, or cmd.exe cannot run them ---
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# --- Shell scripts must stay LF even on Windows ---
+*.sh text eol=lf
+*.bash text eol=lf
+
+# --- Source and configuration files ---
+*.py text eol=lf
+*.pyi text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.jsx text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.sql text eol=lf
+*.ini text eol=lf
+*.cfg text eol=lf
+*.toml text eol=lf
+*.conf text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.txt text eol=lf
+*.csv text eol=lf
+
+# --- Binary files: never touched by the line-ending machinery ---
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.tar binary
+*.7z binary
+*.joblib binary
+*.pkl binary
+*.onnx binary
+*.h5 binary
+*.hdf5 binary
+*.pt binary
+*.pth binary
+*.cbm binary
+*.pbix binary
+*.sqlite binary
+*.sqlite3 binary
+*.db binary
+
+# --- Generated files: collapse them in GitHub's language stats ---
+package-lock.json linguist-generated
+frontend/package-lock.json linguist-generated

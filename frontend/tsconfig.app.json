@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    /* Type packages: `vite/client` provides `import.meta.env` and the CSS
+       module declarations; `vitest/globals` provides describe/it/expect, which
+       the tests use without importing them; jest-dom adds the extra matchers. */
+    "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"],
+
+    /* Bundler mode — Vite handles the actual bundling. */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Strictness. These are deliberately on: they catch the kind of mistake
+       that would otherwise become a runtime error in front of a user. */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": ["src"]
+}

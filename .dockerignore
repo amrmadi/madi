@@ -1,0 +1,100 @@
+# ============================================================================
+# ElderLife AI — .dockerignore (repository root)
+#
+# The backend image builds with the REPOSITORY ROOT as its context, because the
+# backend imports the `ai` package that lives outside backend/. That means
+# without this file Docker would send the entire project — including the
+# virtual environment and node_modules — to the build daemon on every build.
+#
+# This is not just a speed matter. Keeping these paths out of the build context
+# also guarantees no local secret file, dataset, or trained model can
+# accidentally end up baked into an image.
+# ============================================================================
+
+# ---- Secrets ---------------------------------------------------------------
+# `.env` holds real local values. Images must receive configuration at runtime,
+# never carry it inside a layer.
+.env
+.env.*
+!.env.example
+
+# ---- Git -------------------------------------------------------------------
+# History is large and is not needed to build or run the application.
+.git
+.gitignore
+.gitattributes
+
+# ---- Python virtual environment --------------------------------------------
+# Dependencies are installed inside the image from requirements.txt. Copying
+# the host's .venv would be both huge and wrong (it contains Windows binaries).
+.venv/
+venv/
+env/
+
+# ---- Python build/cache junk ----------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ---- Node / frontend -------------------------------------------------------
+# The frontend has its own build context (./frontend) and its own .dockerignore.
+# Listed here too so a root-context build never drags them in.
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+coverage/
+
+# ---- Datasets --------------------------------------------------------------
+# Downloaded research data is large and is mounted or copied deliberately when
+# needed — never shipped inside an application image.
+data/raw/
+data/processed/
+
+# ---- Trained model artifacts ----------------------------------------------
+# Regenerated locally; a model belongs to a release process, not a source tree.
+*.pkl
+*.joblib
+*.h5
+*.hdf5
+*.pt
+*.pth
+*.onnx
+*.cbm
+ai/models/
+ai/**/models/
+
+# ---- Generated analytics exports ------------------------------------------
+analytics/exports/
+
+# ---- Local databases and logs ---------------------------------------------
+*.sqlite3
+*.db
+*.log
+*.tmp
+
+# ---- OS / IDE noise --------------------------------------------------------
+Thumbs.db
+Desktop.ini
+.DS_Store
+.idea/
+.vscode/
+
+# ---- Docker files themselves ----------------------------------------------
+# Not needed inside the image; the frontend's own Dockerfile belongs to its
+# separate context.
+docker-compose.yml
+docker-compose.*.yml
+Dockerfile
+.dockerignore
+
+# ---- Documentation ---------------------------------------------------------
+# The running application does not read these, so they would only add weight.
+docs/
+*.md
+!README.md

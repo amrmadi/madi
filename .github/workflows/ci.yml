@@ -1,0 +1,126 @@
+# ============================================================================
+# ElderLife AI — Continuous Integration
+#
+# What this workflow guarantees on every push and pull request:
+#   * the backend and AI test suites pass;
+#   * the frontend unit tests pass;
+#   * the frontend type-checks and builds;
+#   * the offline validators pass.
+#
+# What it deliberately does NOT require:
+#   * the SisFall dataset (git-ignored, ~232 MB);
+#   * the trained fall-detection model (git-ignored, ~87 MB);
+#   * a PostgreSQL server or Docker;
+#   * any secret or credential.
+#
+# The tests that touch those artefacts must skip cleanly when they are
+# absent. That is a requirement, not an accident — see CONTRIBUTING.md
+# task T4.
+# ============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+# The workflow only needs to read the repository.
+permissions:
+  contents: read
+
+# A new push to the same branch makes the previous run obsolete.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend + AI tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          # 3.12 is the version the Docker image uses, and every dependency
+          # has a pre-built wheel for it.
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: Run the test suite
+        # `testpaths` in pytest.ini covers backend/tests and ai/tests.
+        # The suite uses in-memory SQLite, so no database service is needed.
+        run: python -m pytest -q
+
+      - name: Offline validators
+        run: |
+          python tools/validate_analytics_sql.py
+          python tools/validate_nginx.py
+          python tools/verify_no_model_path.py
+
+  frontend:
+    name: Frontend tests, type check and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        # `npm ci` installs exactly what package-lock.json pins, which is
+        # what a reviewer will get too.
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Type check
+        run: npx tsc -b
+
+      - name: Production build
+        run: npm run build
+
+  compose:
+    name: Docker Compose and Dockerfile paths
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Validate the Compose file and the Dockerfile paths it references
+        # Offline: it only checks that the referenced files exist and that
+        # the wiring is consistent. It does not build or start anything.
+        run: node tools/validate-compose-real.js
+
+      - name: Check that docker compose can parse the file
+        run: docker compose config --quiet

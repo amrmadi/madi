@@ -1,0 +1,79 @@
+# ElderLife AI — backend dependencies
+#
+# Install (inside the project's virtual environment):
+#   python -m venv .venv
+#   .venv\Scripts\activate
+#   pip install -r backend\requirements.txt
+#
+# ---------------------------------------------------------------------------
+# A NOTE ABOUT VERSION PINS ON PYTHON 3.15
+# ---------------------------------------------------------------------------
+# This machine runs Python 3.15, which is brand new. Several packages ship
+# compiled C extensions, so PyPI must publish a pre-built "wheel" for each
+# Python version. If no wheel exists, pip tries to compile the package from
+# source — which on Windows fails with:
+#
+#     error: Microsoft Visual C++ 14.0 or greater is required
+#
+# Verified during Phase 2 (commands actually run):
+#   * pydantic-core 2.27.x  -> NO cp315 wheel -> source build -> fails
+#   * pydantic-core 2.50.1  -> cp315 wheel exists -> installs fine
+#   * psycopg 3.2.x         -> NO cp315 wheel -> fails
+#   * psycopg 3.3.6         -> cp315 wheel exists -> installs fine
+#   * PyYAML (any version)  -> NO cp315 wheel -> so uvicorn[standard] is unusable
+#   * SQLAlchemy 2.0.36     -> installs, but models CRASH on import (see below)
+#   * SQLAlchemy 2.1.5      -> installs and models import correctly
+#
+# The pins below are the releases verified to work on Python 3.15.
+# Do not "downgrade" them without re-verifying on Python 3.15.
+#
+# A cleaner long-term fix is to build this project on Python 3.12 or 3.13,
+# where every one of these packages has wheels and the 2.0.x SQLAlchemy line
+# works normally. That remains an option if these workarounds cause trouble.
+# ---------------------------------------------------------------------------
+
+# --- Web framework ---
+fastapi==0.115.14          # 0.115.x line; last release compatible with pydantic 2.x
+# NOTE: the "[standard]" extra is deliberately NOT used. It pulls in PyYAML,
+# which has no cp315 wheel, plus uvloop (Linux-only) and compiled tooling this
+# project does not need. Plain uvicorn runs FastAPI perfectly well.
+uvicorn==0.34.0
+
+# --- Database ---
+# SQLAlchemy 2.0.x CANNOT be used on Python 3.15: its union-type handling raises
+#   TypeError: descriptor '__getitem__' requires a 'typing.Union' object
+# when models declare `Mapped[X | None]`. Verified: 2.0.36 fails, 2.1.5 works.
+SQLAlchemy>=2.1.5
+alembic==1.14.0
+psycopg[binary]>=3.3.6     # 3.3.6 is the first release with a cp315 wheel
+
+# --- Configuration ---
+pydantic>=2.12.0           # pulls pydantic-core >=2.41, which has cp315 wheels
+pydantic-settings>=2.10.0
+python-dotenv>=1.1.0
+email-validator>=2.2.0     # validates EmailStr fields in the API schemas
+
+# --- Authentication (Phase 3) ---
+# pwdlib is the modern replacement for passlib; argon2 is the default algorithm.
+pwdlib[argon2]>=0.2.0
+bcrypt>=4.2.0              # argon2 fallback / bcrypt hash support
+PyJWT>=2.10.0              # signed access tokens
+
+# --- Testing ---
+# aiosqlite lets the test suite run against an in-memory SQLite database, so
+# tests need no PostgreSQL server, no Docker, and no network.
+aiosqlite>=0.20.0
+pytest>=9.1.1
+pytest-asyncio>=0.25.0
+httpx==0.28.1
+
+# --- Machine learning (Phase 5) ---
+# The backend imports the local `ai` package (see app/api/routers/ai.py), so
+# the API cannot start without these. They were previously installed by hand
+# during Phase 5 and were missing from this file, which broke a clean install.
+# Both backend/Dockerfile and a fresh virtualenv need them.
+scikit-learn>=1.9.1
+numpy>=2.5.4
+pandas>=3.0.6
+scipy>=1.18.1          # required transitively by scikit-learn
+joblib>=1.6.0          # used to load the trained model artefacts

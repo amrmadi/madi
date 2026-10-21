@@ -1,0 +1,138 @@
+# ============================================================================
+# ElderLife AI — full stack: PostgreSQL + backend + frontend
+#
+# Quick start (from the repository root):
+#   copy .env.example .env      # then edit the placeholder values
+#   docker compose up --build -d
+#   docker compose exec backend alembic upgrade head
+#   docker compose exec backend python -m backend.scripts.seed_demo --reset
+#   # open http://localhost:5173
+#
+# Stop:            docker compose down
+# Stop + wipe DB:  docker compose down -v
+#
+# Every value below falls back to a placeholder, so `.env` is optional for a
+# local demo — but a warning is printed if you keep the defaults. There are NO
+# real secrets in this file, and none should ever be committed.
+# ============================================================================
+
+name: elderlife
+
+services:
+  # --------------------------------------------------------------------------
+  # PostgreSQL
+  # --------------------------------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    container_name: elderlife-db
+    restart: unless-stopped
+    environment:
+      # These come from `.env`; the fallbacks are obviously-fake local values.
+      POSTGRES_USER: ${POSTGRES_USER:-elderlife_dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_local_only}
+      POSTGRES_DB: ${POSTGRES_DB:-elderlife}
+    ports:
+      # Exposed so you can connect with a SQL client from Windows. Change the
+      # left-hand side if port 5432 is already taken by a local PostgreSQL.
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - elderlife_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # `pg_isready` returns 0 only when the server accepts connections, so the
+      # backend does not start against a database that is still booting.
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-elderlife_dev} -d ${POSTGRES_DB:-elderlife}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - elderlife
+
+  # --------------------------------------------------------------------------
+  # Backend API
+  # --------------------------------------------------------------------------
+  backend:
+    build:
+      # The context is the REPOSITORY ROOT, not ./backend, because the backend
+      # imports the `ai` package which lives outside backend/.
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: elderlife-backend
+    restart: unless-stopped
+    environment:
+      # Inside the Compose network the database is reached by service name
+      # (`db`), NOT localhost — localhost inside this container is the
+      # container itself. This is the most common Compose mistake.
+      DATABASE_URL: >-
+        postgresql+psycopg://${POSTGRES_USER:-elderlife_dev}:${POSTGRES_PASSWORD:-change_me_local_only}@db:5432/${POSTGRES_DB:-elderlife}
+      BACKEND_HOST: 0.0.0.0
+      BACKEND_PORT: "8000"
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      # The browser loads the app from the host's port 5173, so that origin —
+      # not the container name — must be allowed by CORS.
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173}
+      # NEVER commit a real key. Override this in `.env`; the backend refuses to
+      # start in production with the placeholder value.
+      SECRET_KEY: ${SECRET_KEY:-dev-only-insecure-secret-change-me}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      db:
+        # Wait for the database to be genuinely ready, not merely started.
+        condition: service_healthy
+    healthcheck:
+      # /health performs a real `SELECT 1`, so this reports "unhealthy" when the
+      # database is unreachable rather than a misleading "healthy".
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - elderlife
+
+  # --------------------------------------------------------------------------
+  # Frontend (nginx serving the built single-page app)
+  # --------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Compiled into the bundle at build time. `localhost:8000` is correct
+        # because the browser runs on the host, where the backend port is
+        # published. Set this to `/api` to route through nginx instead and
+        # avoid CORS entirely (see frontend/nginx.conf).
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+    container_name: elderlife-frontend
+    restart: unless-stopped
+    ports:
+      # Host 5173 to match the Vite dev server, so the port you learn in
+      # development is the port you use in Docker.
+      - "5173:80"
+    depends_on:
+      backend:
+        # The app loads without the API, but waiting avoids a screenful of
+        # connection errors on first load.
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - elderlife
+
+volumes:
+  # Named volume: data survives `docker compose down`. It does NOT survive
+  # `docker compose down -v`, which is how you reset the database.
+  elderlife_pgdata:
+    name: elderlife_pgdata
+
+networks:
+  elderlife:
+    name: elderlife_net
